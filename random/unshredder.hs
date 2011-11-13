@@ -1,6 +1,8 @@
 import Data.List
 import Codec.Image.DevIL
 import Data.Array.Unboxed
+import Control.Applicative
+import Data.Ord
 
 main = do
   ilInit
@@ -46,7 +48,7 @@ diff xs ys metric = sum (map (uncurry deviation) (zip xs ys))
                   distance a b = (metric . sum) (map (\x -> (abs (fst x - snd x))) (zip a b))
 
 --find best strip width
-stripFind img metric = foldr1 gcd [divisors!!x |x<-top5] -- divisors!!minindex
+stripFind img metric = foldr1 gcd [divisors!!x |x<-top5]
               where list = map stripFind' divisors
                     top5 = take 5 (elemIndex' ((reverse.sort) list) list)
                     divisors = [n| n<-[2..(div (width img) 2)], mod (width img) n == 0]
@@ -54,13 +56,9 @@ stripFind img metric = foldr1 gcd [divisors!!x |x<-top5] -- divisors!!minindex
                          where strips  = (decode img n)
                                avg xs = (sum xs) / (fromIntegral $ length xs)
 --unshred!
-unshred strips metric = unshredFrom ((length strips)-1)
+--unshred strips metric = unshredFrom ((length strips)-1)
+unshred strips metric = minimumBy (comparing weight) [n:search bound n [n] | n<-[0..bound]]
   where
-    unshredFrom (-1) = []
-    unshredFrom n  | weight path < weight (unshredFrom (n-1)) = path
-                   | otherwise                             = (unshredFrom (n-1))
-                   where path = n:search ((length strips)-1) n [n]
-
     --weight of each edge
     edgeWeight =  [ [(\a b -> diff (last a) (head b) metric) y x | x <- strips] | y <- strips]
     
@@ -73,7 +71,5 @@ unshred strips metric = unshredFrom ((length strips)-1)
                           where x = head (dropWhile ((flip elem) chosen) (sortedEdges!!n))
     
     --Find weight of a certain path
-    weight [] = 99999999999
-    weight [x] = 0
-    weight (x:x':xs) = ((edgeWeight!!x)!!x') + (weight (x':xs))
-
+    weight = maximum . map (uncurry (\x y-> edgeWeight!!x!!y)) . liftA2 zip init tail
+    bound = (length strips)-1

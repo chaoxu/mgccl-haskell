@@ -19,7 +19,7 @@ main = do
 hash x y       = foldr ((:).(y!!)) [] x
 width img      = (w+1) where (_,w,_) = snd $ bounds img
 height img     = (h+1) where (h,_,_) = snd $ bounds img
-elemIndex' a b = map (head . (flip elemIndices) b) a
+gradeUp xs = snd $ unzip . sort $ zip xs [0..length xs-1]
 
 --convert the img into lists
 decode img stripWidth = chunk stripWidth [[[img!(y,x,z)|z<-[0..3]]|y<-[0..((height img)-1)]]|x<-[0..((width img)-1)]]
@@ -36,7 +36,7 @@ diff xs ys = sum $ map (uncurry distance) (zip (last xs) (head ys))
 --find best strip width
 stripFind img = foldr1 gcd [divisors!!x |x<-top5]
               where list = map stripFind' divisors
-                    top5 = take 5 (elemIndex' ((reverse.sort) list) list)
+                    top5 = take 5 ((reverse . gradeUp) list)
                     divisors = [n| n<-[2..(div (width img) 2)], mod (width img) n == 0]
                     stripFind' n = avg $ zipWith diff (init strips) (tail strips)
                          where strips  = decode img n
@@ -48,7 +48,7 @@ unshred strips = minimumBy (comparing weight) [n:search bound n [n] | n<-[0..bou
     edgeWeight =  [ [diff y x | x <- strips] | y <- strips]
     
     --sort the edges on each vertex by weight
-    sortedEdges = zipWith elemIndex' (map sort edgeWeight) edgeWeight
+    sortedEdges = map gradeUp edgeWeight
     
     --search for the path
     search 0 _ _ = []
@@ -56,5 +56,5 @@ unshred strips = minimumBy (comparing weight) [n:search bound n [n] | n<-[0..bou
                           where x = head $ dropWhile (flip elem $ chosen) (sortedEdges!!n)
     
     --Find weight of a certain path
-    weight = maximum . (<*>) (zipWith (\x y-> edgeWeight!!x!!y) . init) tail
+    weight = maximum . ((zipWith (\x y-> edgeWeight!!x!!y) . init) <*> tail)
     bound = (length strips)-1

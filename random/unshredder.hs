@@ -31,14 +31,14 @@ encode bound list = array ((0,0,0),bound) (zip [(y,x,z)|(y,x,z)<-range((0,0,0),b
 
 --function calculates the difference between two columns
 diff xs ys = sum $ map (uncurry distance) (zip (last xs) (head ys))
-           where distance a b = metric $ sum $ map (abs . (uncurry (-))) (zip (map fromIntegral a) (map fromIntegral b))
+           where distance a b = metric $ sum $ zipWith ((abs .) . (-)) (map fromIntegral a) (map fromIntegral b)
 
 --find best strip width
 stripFind img = foldr1 gcd [divisors!!x |x<-top5]
               where list = map stripFind' divisors
                     top5 = take 5 (elemIndex' ((reverse.sort) list) list)
                     divisors = [n| n<-[2..(div (width img) 2)], mod (width img) n == 0]
-                    stripFind' n = avg (map (uncurry diff) (zip (init strips) (tail strips)))
+                    stripFind' n = avg $ zipWith diff (init strips) (tail strips)
                          where strips  = decode img n
                                avg xs = (sum xs) / (fromIntegral $ length xs)
 --unshred!
@@ -48,7 +48,7 @@ unshred strips = minimumBy (comparing weight) [n:search bound n [n] | n<-[0..bou
     edgeWeight =  [ [diff y x | x <- strips] | y <- strips]
     
     --sort the edges on each vertex by weight
-    sortedEdges = map (uncurry elemIndex') (zip (map sort edgeWeight) edgeWeight)
+    sortedEdges = zipWith elemIndex' (map sort edgeWeight) edgeWeight
     
     --search for the path
     search 0 _ _ = []
@@ -56,5 +56,5 @@ unshred strips = minimumBy (comparing weight) [n:search bound n [n] | n<-[0..bou
                           where x = head $ dropWhile (flip elem $ chosen) (sortedEdges!!n)
     
     --Find weight of a certain path
-    weight = maximum . map (uncurry (\x y-> edgeWeight!!x!!y)) . liftA2 zip init tail
+    weight = maximum . (<*>) (zipWith (\x y-> edgeWeight!!x!!y) . init) tail
     bound = (length strips)-1

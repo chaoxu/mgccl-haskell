@@ -1,5 +1,6 @@
 import System( getArgs )
 --Generate sparkline, haskell version of https://github.com/holman/spark/
+--usage, after compile, try spark -10 0 15.24 42
 --Chao Xu, http://chaoxuprime.com
 main = do
   args <- getArgs

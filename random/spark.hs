@@ -1,13 +1,13 @@
-import System( getArgs )
---Generate sparkline, haskell version of https://github.com/holman/spark/
---usage, after compile, try spark -10 0 15.24 42
---Chao Xu, http://chaoxuprime.com
-main = do
-  args <- getArgs
-  let input = args
-  putStrLn $ spark (map read input :: [Double])
+-- Generate a sparkline, Haskell version of <https://github.com/holman/spark/>
+-- Usage: after compile, try '$ spark -10 0 15.24 42'
+-- Author: Chao Xu, <http://chaoxuprime.com>
+import System (getArgs)
 
-ticks = "▁▂▃▅▆▇"
-spark list = map (ticks!!) xs
+main :: IO ()
+main = do input <- getArgs
+          putStrLn $ spark (map read input :: [Double])
+
+spark :: RealFrac b => [b] -> String
+spark list = map ("▁▂▃▅▆▇" !!) xs
            where zs = map (flip (-) (minimum list)) list
-                 xs = map (round . (*5) . (/(maximum zs))) zs
+                 xs = map (round . (* 5) . (/ maximum zs)) zs

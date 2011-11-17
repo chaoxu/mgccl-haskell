@@ -1,3 +1,4 @@
+
 import Data.List
 import Codec.Image.DevIL
 import Data.Array.Unboxed
@@ -9,14 +10,12 @@ metric = sqrt.sqrt
 
 main = do
   ilInit
-  t <- readImage "file.png"
-  let img = t
+  img <- readImage "file.png"
   let stripWidth = stripFind img
   let list = decode img stripWidth
-  let result = concat (hash (unshred list) list)
+  let result = concat (map (list!!) (unshred list))
   writeImage "unshredded.png" (encode (snd $ bounds img) result)
 
-hash x y       = foldr ((:).(y!!)) [] x
 width img      = w + 1 where (_,w,_) = snd $ bounds img
 height img     = h + 1 where (h,_,_) = snd $ bounds img
 gradeUp xs = snd $ unzip . sort $ zip xs [0..length xs-1]

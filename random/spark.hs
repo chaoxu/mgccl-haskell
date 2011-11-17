@@ -7,7 +7,7 @@ main :: IO ()
 main = do input <- getArgs
           putStrLn $ spark (map read input :: [Double])
 
-spark :: RealFrac b => [b] -> String
+spark :: [Double] -> String
 spark list = map ("▁▂▃▄▅▆▇" !!) xs
            where zs = map (flip (-) (minimum list)) list
                  xs = map (round . (* 6) . (/ maximum zs)) zs

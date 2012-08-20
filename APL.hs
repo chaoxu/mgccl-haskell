@@ -12,7 +12,7 @@ nWiseReduce n f xs = map (foldr1 f) (take (length xs-n+1) (map (take n) (tails x
 
 --Grade up ⍋:
 gradeUp :: Ord a => [a] -> [Int]
-gradeUp xs = snd $ unzip . sort $ zip xs [0..length xs-1]
+gradeUp = snd . unzip . sort . flip zip [0..]
 --Grade Down ⍒:
 gradeDown :: Ord a => [a] -> [Int]
 gradeDown = reverse . gradeUp

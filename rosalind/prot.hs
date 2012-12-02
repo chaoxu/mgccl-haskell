@@ -1,4 +1,4 @@
 import Rosalind
 main :: IO ()
 main  = do c <- getLine
-           print $ proteinTranslation c
+           print $ head $ proteinTranscription c

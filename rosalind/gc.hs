@@ -1,17 +1,13 @@
-{-# LANGUAGE FlexibleInstances #-}
 import System.IO
+import Rosalind
+
 main :: IO ()
-main  = loop [] "" ""
+main  = loop []
 
-loop x v w = do end <- isEOF
-                if end
-                  then putStr $ show $ maximum ((comp v,w):x)
-                  else do c <- getLine
-                          if isName c
-                            then loop ((comp v,w):x) [] (tail c)
-                            else loop x (v++c) w
-    where comp l = (fromIntegral $ length $ filter (\y-> y=='C' || y=='G') l)/ (fromIntegral $ length l)
-          isName ('>':_) =True
-          isName _ = False
-
+loop xs = do end <- isEOF
+             if end
+               then print $ maximum [ (gcContent y,x) |(x,y)<-xs]
+               else do c <- readFASTA
+                       loop (c:xs)
+    where gcContent l = (fromIntegral $ length $ filter (\y-> y=='C' || y=='G') l)/ (fromIntegral $ length l)
 

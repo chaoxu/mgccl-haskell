@@ -6,6 +6,7 @@ import Data.List.Utils
 import Data.List
 import Data.Array
 import System.IO
+import Math.Combinatorics.Exact.Binomial
 --this is for RNA
 proteinTranslation :: String -> String
 proteinTranslation x = map (fromJust . flip lookup t) $ chunksOf 3 x
@@ -101,3 +102,5 @@ deBruijnString :: Eq t => [t] -> [t] -> [([t], [t])] -> [t]
 deBruijnString s x e
             | x == s    = [head s]
             | otherwise = head x:deBruijnString s (fromJust (lookup x e)) e
+binomial :: (Floating a, Integral a1) =>  a1 -> a -> a1 -> a
+binomial n p k =fromIntegral (n `choose` k)*(p** fromIntegral k)*((1-p)**fromIntegral (n-k))

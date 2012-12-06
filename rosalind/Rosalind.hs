@@ -101,4 +101,3 @@ deBruijnString :: Eq t => [t] -> [t] -> [([t], [t])] -> [t]
 deBruijnString s x e
             | x == s    = [head s]
             | otherwise = head x:deBruijnString s (fromJust (lookup x e)) e
-

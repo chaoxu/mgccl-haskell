@@ -50,7 +50,8 @@ editTable s t = a
                 z = a!(i-1,j-1)+(if u==v then 0 else 1)
                 u = s!!(i-1)
                 v = t!!(j-1)
-
+--Gap distance function, subsitution cost 
+scoringEditDistance :: Eq a => (Int->Int)->(a->a->Int)->[a]->[a]->Int
 editString :: String -> String -> (String, String)
 editString s t = build (length s) (length t) [] []
   where a = editTable s t
@@ -62,10 +63,18 @@ editString s t = build (length s) (length t) [] []
           where u = s!!(i-1)
                 v = t!!(j-1)
 
-monoisotopicMassTable :: Array Char Double
+monoiZsotopicMassTable :: Array Char Double
 monoisotopicMassTable = array ('A','Z') monoisotopicMassList
 monoisotopicMassList :: [(Char,Double)]
-monoisotopicMassList = [('A', 71.03711),('C', 103.00919),('D', 115.02694),('E', 129.04259),('F', 147.06841),('G', 57.02146),('H', 137.05891),('I', 113.08406),('K', 128.09496),('L', 113.08406),('M', 131.04049),('N', 114.04293),('P', 97.05276),('Q', 128.05858),('R', 156.10111),('S', 87.03203),('T', 101.04768),('V', 99.06841),('W', 186.07931),('Y', 163.06333)]
+monoisotopicMassList = zip "ACDEFGHIKLMNPQRSTVWY" [71.03711, 103.00919, 115.02694, 129.04259, 147.06841, 57.02146, 137.05891, 113.08406, 128.09496, 113.08406, 131.04049, 114.04293, 97.05276, 128.05858, 156.10111, 87.03203, 101.04768,99.06841,186.07931, 163.06333]
+proteinFromMass :: Double -> Maybe Char
+proteinFromMass w 
+  | e < epsilon = Just r
+  | otherwise = Nothing
+  where (e,r) = proteinFromMassError w
+        epsilon = 0.00002
+proteinFromMassError :: Double -> (Double, Char)
+proteinFromMassError w = minimum $ map (\(x,y)->(abs (y-w),x)) monoisotopicMassList
 readFASTA :: IO (String, String)
 readFASTA = do name <- getLine
                dna  <- readData

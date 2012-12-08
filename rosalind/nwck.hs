@@ -1,12 +1,9 @@
-import Text.Parsec
-import Text.Parsec.String
 import Data.Maybe
 import System.IO
 import Newick
 import Data.Tree
 main :: IO ()
 main  = loop []
-type Info = (String,Int)
 loop xs = do c <- getLine
              d <- getLine
              let [x,y] = words d 

@@ -7,6 +7,7 @@ import Data.List
 import Data.Array
 import System.IO
 import Math.Combinatorics.Exact.Binomial
+import Data.Tree
 --this is for RNA
 proteinTranslation :: String -> String
 proteinTranslation x = map (fromJust . flip lookup t) $ chunksOf 3 x
@@ -51,7 +52,6 @@ editTable s t = a
                 u = s!!(i-1)
                 v = t!!(j-1)
 --Gap distance function, subsitution cost 
-scoringEditDistance :: Eq a => (Int->Int)->(a->a->Int)->[a]->[a]->Int
 editString :: String -> String -> (String, String)
 editString s t = build (length s) (length t) [] []
   where a = editTable s t
@@ -63,7 +63,7 @@ editString s t = build (length s) (length t) [] []
           where u = s!!(i-1)
                 v = t!!(j-1)
 
-monoiZsotopicMassTable :: Array Char Double
+monoisotopicMassTable :: Array Char Double
 monoisotopicMassTable = array ('A','Z') monoisotopicMassList
 monoisotopicMassList :: [(Char,Double)]
 monoisotopicMassList = zip "ACDEFGHIKLMNPQRSTVWY" [71.03711, 103.00919, 115.02694, 129.04259, 147.06841, 57.02146, 137.05891, 113.08406, 128.09496, 113.08406, 131.04049, 114.04293, 97.05276, 128.05858, 156.10111, 87.03203, 101.04768,99.06841,186.07931, 163.06333]
@@ -113,3 +113,26 @@ deBruijnString s x e
             | otherwise = head x:deBruijnString s (fromJust (lookup x e)) e
 binomial :: (Floating a, Integral a1) =>  a1 -> a -> a1 -> a
 binomial n p k =fromIntegral (n `choose` k)*(p** fromIntegral k)*((1-p)**fromIntegral (n-k))
+subTrees :: Tree a -> Forest a
+subTrees (Node x sub) = Node x sub:concatMap subTrees sub
+
+count :: (Eq a) => a -> [a] -> Int
+count x = length . elemIndices x
+
+lcs :: Eq a => [a] -> [a] -> [a]
+lcs s t = reverse $ build n m
+  where a = array ((0,0),(n,m)) [((x,y),f x y)|x<-[0..n],y<-[0..m]]
+        n = length s
+        m = length t
+        s'= array (0,n-1) $ zip [0..n-1] s
+        t'= array (0,m-1) $ zip [0..m-1] t
+        f :: Int->Int->Int
+        f i j
+          | min i j == 0        = 0
+          | s'!(i-1)==t'!(j-1)  = a!(i-1,j-1) +1
+          | otherwise           = max (a!(i-1,j)) (a!(i,j-1))
+        build i j 
+          | min i j == 0          = []
+          | s'!(i-1) == t'!(j-1)  = (s'!(i-1)):build (i-1) (j-1)
+          | a!(i,j-1) > a!(i-1,j) = build i (j-1)
+          | otherwise             = build (i-1) j

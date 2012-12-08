@@ -2,6 +2,9 @@ module Newick where
 import Text.Parsec
 import Text.Parsec.String
 import Data.Tree
+import Data.Set (Set, difference, fromList, size)
+import Rosalind
+type NewickTree = (Tree Info)
 type Info = (String,Int)
 
 newickTree :: String -> Tree Info
@@ -53,3 +56,15 @@ number =
 
 name :: Parser String
 name = option "" $ many1 (letter <|> digit <|> oneOf "_.-")
+
+splits :: NewickTree -> [(Set String, Set String)]
+splits t = map (\(x,y)-> (min x y,max x y)) $ 
+           filter (\(x,y)-> size x >1 && size y>1) pair 
+    where l    = fromList $ leafLabels $ fmap fst t
+          cand = map (fromList.leafLabels) $ subTrees $ fmap fst t
+          pair = zip (map (l `difference`) cand) cand
+
+leafLabels :: Tree a -> [a]
+leafLabels (Node x forest) 
+  | null forest = [x]
+  | otherwise   = concatMap leafLabels forest

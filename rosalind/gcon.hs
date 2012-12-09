@@ -1,9 +1,7 @@
-import Bio.Alignment.AAlign
-import Bio.Alignment.Matrices
-import Bio.Sequence
---Not DONE
+import Data.Array
+import Matrices
+import Rosalind
 main :: IO ()
 main  = do c <- getLine
            d <- getLine
-           print $ global_score blosum62 (-11,-1) (Seq (fromStr "") (fromStr c) Nothing) (Seq (fromStr "") (fromStr d) Nothing)
-
+           print $ globalAffineAlignmentScore blosum62 5 0 c d

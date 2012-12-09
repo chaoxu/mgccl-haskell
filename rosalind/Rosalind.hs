@@ -8,6 +8,8 @@ import Data.Array
 import System.IO
 import Math.Combinatorics.Exact.Binomial
 import Data.Tree
+import Matrices
+import Data.Tuple
 --this is for RNA
 proteinTranslation :: String -> String
 proteinTranslation x = map (fromJust . flip lookup t) $ chunksOf 3 x
@@ -35,26 +37,11 @@ proteinTranscription xs = filter (not . null) $ map (\x-> between $ drop x p) i
            where end = elemIndex 'X' l
 
 editDistance :: Eq a => [a] -> [a] -> Int
-editDistance s t = editTable s t!(length s,length t)
+editDistance s t = - globalAffineAlignmentScore (\x y->if x /= y then -1 else 0) 0 1 s t
 
-editTable :: Eq a => [a] -> [a] -> Array (Int, Int) Int
-editTable s t = a
-  where a = array ((0,0),(n,m)) [((x,y),f x y)|x<-[0..n],y<-[0..m]]
-        n = length s
-        m = length t
-        f i j
-          | min i j == 0        = max i j
-          | otherwise           = minimum [x,y,z]
-          where 
-                x = 1+a!(i-1,j)
-                y = 1+a!(i,j-1)
-                z = a!(i-1,j-1)+(if u==v then 0 else 1)
-                u = s!!(i-1)
-                v = t!!(j-1)
---Gap distance function, subsitution cost 
 editString :: String -> String -> (String, String)
 editString s t = build (length s) (length t) [] []
-  where a = editTable s t
+  where a = fmap negate $ globalAffineAlignmentTable (\x y->if x /= y then -1 else 0) 0 1 s t
         build i j s' t'
           | i == 0 && j == 0                 = (s', t')
           | j == 0 || a!(i,j) == a!(i-1,j)+1 = build (i-1) j (u:s') ('-':t')
@@ -66,7 +53,7 @@ editString s t = build (length s) (length t) [] []
 monoisotopicMassTable :: Array Char Double
 monoisotopicMassTable = array ('A','Z') monoisotopicMassList
 monoisotopicMassList :: [(Char,Double)]
-monoisotopicMassList = zip "ACDEFGHIKLMNPQRSTVWY" [71.03711, 103.00919, 115.02694, 129.04259, 147.06841, 57.02146, 137.05891, 113.08406, 128.09496, 113.08406, 131.04049, 114.04293, 97.05276, 128.05858, 156.10111, 87.03203, 101.04768,99.06841,186.07931, 163.06333]
+monoisotopicMassList = zip proteinAlphabet [71.03711, 103.00919, 115.02694, 129.04259, 147.06841, 57.02146, 137.05891, 113.08406, 128.09496, 113.08406, 131.04049, 114.04293, 97.05276, 128.05858, 156.10111, 87.03203, 101.04768,99.06841,186.07931, 163.06333]
 proteinFromMass :: Double -> Maybe Char
 proteinFromMass w 
   | e < epsilon = Just r
@@ -136,3 +123,75 @@ lcs s t = reverse $ build n m
           | s'!(i-1) == t'!(j-1)  = (s'!(i-1)):build (i-1) (j-1)
           | a!(i,j-1) > a!(i-1,j) = build i (j-1)
           | otherwise             = build (i-1) j
+
+globalAffineAlignmentScore :: Eq a => (a -> a -> Int) -> Int -> Int -> [a] -> [a] -> Int
+globalAffineAlignmentScore f g e s t = (!(length s,length t)) $ globalAffineAlignmentTable f g e s t
+
+globalAffineAlignmentTable :: Eq a => (a->a->Int)->Int->Int->[a]->[a]->Array (Int,Int) Int
+--subsitution, gap opening, gap extension, string 1, string 2
+globalAffineAlignmentTable f g e s' t' = c
+  where a = array ((0,0),(n,m)) [((x,y),a' x y)|x<-[0..n],y<-[0..m]] --s end with gap
+        b = array ((0,0),(n,m)) [((x,y),b' x y)|x<-[0..n],y<-[0..m]] --t end with gap
+        c = array ((0,0),(n,m)) [((x,y),c' x y)|x<-[0..n],y<-[0..m]] -- best 
+        n = length s'
+        m = length t'
+        s= array (0,n-1) $ zip [0..n-1] s'
+        t= array (0,m-1) $ zip [0..m-1] t'
+        a' i j
+          | i==0 || j==0  = inf
+          | otherwise     = max (a!(i-1,j)-e) (c!(i-1,j)-g-e)
+        b' i j
+          | i==0 || j==0  = inf
+          | otherwise     = max (b!(i,j-1)-e) (c!(i,j-1)-g-e)
+        c' i j
+          | max i j == 0  = 0
+          | min i j == 0  = -g -e * max i j
+          | otherwise     = maximum [b!(i,j),a!(i,j),match]
+          where 
+                match = c!(i-1,j-1) + f u v
+                u = s!(i-1)
+                v = t!(j-1)
+        inf = -1073741824
+
+
+
+localAffineAlignmentScore :: Eq a => (a -> a -> Int) -> Int -> Int -> [a] -> [a] -> Int
+localAffineAlignmentScore f g e s t = fst $ maximum $ elems $ localAffineAlignmentTable f g e s t
+
+localAffineAlignmentBest f g e s t = (drop si $ take ei s,drop sj $ take ej t,b1,b2)
+  where a = localAffineAlignmentTable f g e s t
+        (si,sj,b1,b2) = build ei ej [] []
+        (ei,ej) = snd $ maximum $ map swap $ assocs a
+        build x y s' t'
+         | o == 0       = (x,y,s',t')
+         | d == 1       = build (x-1) (y-1) (u:s') (v:t') 
+         | d == 2       = build (x-1) y     (u:s') ('-':t') 
+         | otherwise    = build x (y-1)     ('-':s') (v:t') 
+         where (o,d) = a!(x,y)
+               u     = s!!(x-1)
+               v     = t!!(y-1)
+
+localAffineAlignmentTable :: Eq a => (a->a->Int)->Int->Int->[a]->[a]->Array (Int,Int) (Int,Int)
+--subsitution, gap opening, gap extension, string 1, string 2
+localAffineAlignmentTable f g e s' t' = c
+  where a = array ((0,0),(n,m)) [((x,y),a' x y)|x<-[0..n],y<-[0..m]] --s end with gap
+        b = array ((0,0),(n,m)) [((x,y),b' x y)|x<-[0..n],y<-[0..m]] --t end with gap
+        c = array ((0,0),(n,m)) [((x,y),c' x y)|x<-[0..n],y<-[0..m]] -- best 
+        n = length s'
+        m = length t'
+        s= array (0,n-1) $ zip [0..n-1] s'
+        t= array (0,m-1) $ zip [0..m-1] t'
+        a' i j
+          | i==0 || j==0  = inf
+          | otherwise     = max (a!(i-1,j)-e) (fst (c!(i-1,j))-g-e)
+        b' i j
+          | i==0 || j==0  = inf
+          | otherwise     = max (b!(i,j-1)-e) (fst (c!(i,j-1))-g-e)
+        c' i j
+          | min i j == 0  = (0,0)
+          | otherwise     = maximum [(b!(i,j),3),(a!(i,j),2),(match,1),(0,0)]
+          where 
+                match = fst (c!(i-1,j-1)) + f u v
+                u = s!(i-1)
+                v = t!(j-1)
+        inf = -1073741824

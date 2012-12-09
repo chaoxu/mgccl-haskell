@@ -4,4 +4,4 @@ import Rosalind
 main :: IO ()
 main  = do c <- getLine
            d <- getLine
-           print $ globalAffineAlignmentScore blosum62 0 5 c d
+           print $ globalAffineAlignmentScore blosum62 11 1 c d

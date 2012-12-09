@@ -1,5 +1,7 @@
+import Data.Array
+import Matrices
 import Rosalind
 main :: IO ()
-main  = do s <- getLine
-           t <- getLine 
-           print $ editDistance s t
+main  = do c <- getLine
+           d <- getLine
+           print $ editDistance c d

@@ -8,8 +8,11 @@ import Data.Array
 import System.IO
 import Math.Combinatorics.Exact.Binomial
 import Data.Tree
-import Matrices
+import Matrices()
 import Data.Tuple
+import Data.Graph.Inductive
+import Data.Ord
+
 --this is for RNA
 proteinTranslation :: String -> String
 proteinTranslation x = map (fromJust . flip lookup t) $ chunksOf 3 x
@@ -53,7 +56,7 @@ editString s t = build (length s) (length t) [] []
 monoisotopicMassTable :: Array Char Double
 monoisotopicMassTable = array ('A','Z') monoisotopicMassList
 monoisotopicMassList :: [(Char,Double)]
-monoisotopicMassList = zip proteinAlphabet [71.03711, 103.00919, 115.02694, 129.04259, 147.06841, 57.02146, 137.05891, 113.08406, 128.09496, 113.08406, 131.04049, 114.04293, 97.05276, 128.05858, 156.10111, 87.03203, 101.04768,99.06841,186.07931, 163.06333]
+monoisotopicMassList = zip "ACDEFGHIKLMNPQRSTVWY" [71.03711, 103.00919, 115.02694, 129.04259, 147.06841, 57.02146, 137.05891, 113.08406, 128.09496, 113.08406, 131.04049, 114.04293, 97.05276, 128.05858, 156.10111, 87.03203, 101.04768,99.06841,186.07931, 163.06333]
 proteinFromMass :: Double -> Maybe Char
 proteinFromMass w 
   | e < epsilon = Just r
@@ -153,10 +156,9 @@ globalAffineAlignmentTable f g e s' t' = c
                 v = t!(j-1)
         inf = -1073741824
 
-
-
 localAffineAlignmentScore :: Eq a => (a -> a -> Int) -> Int -> Int -> [a] -> [a] -> Int
 localAffineAlignmentScore f g e s t = fst $ maximum $ elems $ localAffineAlignmentTable f g e s t
+localAffineAlignmentBest :: (Char -> Char -> Int) -> Int -> Int -> String -> String -> (String, String, String, String)
 
 localAffineAlignmentBest f g e s t = (drop si $ take ei s,drop sj $ take ej t,b1,b2)
   where a = localAffineAlignmentTable f g e s t
@@ -195,3 +197,34 @@ localAffineAlignmentTable f g e s' t' = c
                 u = s!(i-1)
                 v = t!(j-1)
         inf = -1073741824
+
+
+longestPathDAG :: (Graph gr)=>gr a b ->[Node]
+longestPathDAG g = maximumBy (comparing length) $ elems a
+  where a = array (0,n-1) [(i,d i)|i<-[0..n-1]]
+        n = length (nodes g)
+        d i 
+          | null v    = [i]
+          | otherwise = maximumBy (comparing length) [t i j|j<-v]
+          where v = suc g i
+                t i j
+                  | j `elem` v = i:(a!j)
+                  | otherwise  = [i]
+
+normalCharacterTable :: [String]->Maybe [String]
+normalCharacterTable t = dfs t []
+  where dfs [] y = Just y
+        dfs (x:xs) y
+         | c1 && c2  = if isNothing d1 then d2 else d1
+         | c1        = d1
+         | c2        = d2
+         | otherwise = Nothing
+         where c1 = all (consistent x) y
+               c2 = all (consistent x') y
+               d1 = dfs xs (x:y)
+               d2 = dfs xs (x':y)
+               x' = map (\x->if x=='1' then '0' else '1') x
+               consistent x y = subset x y|| subset y x || disjoint x y
+               subset x y = and $ zipWith (<=) x y
+               disjoint x y = not $ or $ zipWith (\a b->a=='1' && b=='1') x y
+

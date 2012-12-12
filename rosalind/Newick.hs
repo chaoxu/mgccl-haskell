@@ -68,3 +68,9 @@ leafLabels :: Tree a -> [a]
 leafLabels (Node x forest) 
   | null forest = [x]
   | otherwise   = concatMap leafLabels forest
+printNewickTree :: Tree String -> String
+printNewickTree x = p x++";"
+  where p (Node a []) = a
+        p (Node a xs) = "("++join (map p xs)++")"++a
+        join [x] = x
+        join (x:xs) = x++","++join xs

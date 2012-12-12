@@ -21,17 +21,6 @@ solve xs = pathEdgeLabel g $ longestPathDAG g
                     (i,a)<-v,(j,b)<-v,isJust $ proteinFromMass (b-a)]
           n = length xs
 
-longestPathDAG :: (Graph gr)=>gr a b ->[Node]
-longestPathDAG g = maximumBy (comparing length) $ elems a
-  where a = array (0,n-1) [(i,d i)|i<-[0..n-1]]
-        n = length (nodes g)
-        d i 
-          | null v    = [i]
-          | otherwise = maximumBy (comparing length) [t i j|j<-v]
-          where v = suc g i
-                t i j
-                  | j `elem` v = i:(a!j)
-                  | otherwise  = [i]
 
 pathEdgeLabel g xs = map fromJust $ zipWith (edgeLabel g) (init xs) (tail xs)
 edgeLabel :: (Graph gr)=>gr a b->Node->Node->Maybe b

@@ -12,6 +12,9 @@ import Matrices()
 import Data.Tuple
 import Data.Graph.Inductive
 import Data.Ord
+import Data.Array.ST hiding (unsafeFreeze)
+import Data.Array.Unsafe
+import Control.Monad.ST
 
 --this is for RNA
 proteinTranslation :: String -> String
@@ -109,24 +112,6 @@ subTrees (Node x sub) = Node x sub:concatMap subTrees sub
 count :: (Eq a) => a -> [a] -> Int
 count x = length . elemIndices x
 
-lcs :: Eq a => [a] -> [a] -> [a]
-lcs s t = reverse $ build n m
-  where a = array ((0,0),(n,m)) [((x,y),f x y)|x<-[0..n],y<-[0..m]]
-        n = length s
-        m = length t
-        s'= array (0,n-1) $ zip [0..n-1] s
-        t'= array (0,m-1) $ zip [0..m-1] t
-        f :: Int->Int->Int
-        f i j
-          | min i j == 0        = 0
-          | s'!(i-1)==t'!(j-1)  = a!(i-1,j-1) +1
-          | otherwise           = max (a!(i-1,j)) (a!(i,j-1))
-        build i j 
-          | min i j == 0          = []
-          | s'!(i-1) == t'!(j-1)  = (s'!(i-1)):build (i-1) (j-1)
-          | a!(i,j-1) > a!(i-1,j) = build i (j-1)
-          | otherwise             = build (i-1) j
-
 globalAffineAlignmentScore :: Eq a => (a -> a -> Int) -> Int -> Int -> [a] -> [a] -> Int
 globalAffineAlignmentScore f g e s t = (!(length s,length t)) $ globalAffineAlignmentTable f g e s t
 
@@ -156,47 +141,6 @@ globalAffineAlignmentTable f g e s' t' = c
                 v = t!(j-1)
         inf = -1073741824
 
-localAffineAlignmentScore :: Eq a => (a -> a -> Int) -> Int -> Int -> [a] -> [a] -> Int
-localAffineAlignmentScore f g e s t = fst $ maximum $ elems $ localAffineAlignmentTable f g e s t
-localAffineAlignmentBest :: (Char -> Char -> Int) -> Int -> Int -> String -> String -> (String, String, String, String)
-
-localAffineAlignmentBest f g e s t = (drop si $ take ei s,drop sj $ take ej t,b1,b2)
-  where a = localAffineAlignmentTable f g e s t
-        (si,sj,b1,b2) = build ei ej [] []
-        (ei,ej) = snd $ maximum $ map swap $ assocs a
-        build x y s' t'
-         | o == 0       = (x,y,s',t')
-         | d == 1       = build (x-1) (y-1) (u:s') (v:t') 
-         | d == 2       = build (x-1) y     (u:s') ('-':t') 
-         | otherwise    = build x (y-1)     ('-':s') (v:t') 
-         where (o,d) = a!(x,y)
-               u     = s!!(x-1)
-               v     = t!!(y-1)
-
-localAffineAlignmentTable :: Eq a => (a->a->Int)->Int->Int->[a]->[a]->Array (Int,Int) (Int,Int)
---subsitution, gap opening, gap extension, string 1, string 2
-localAffineAlignmentTable f g e s' t' = c
-  where a = array ((0,0),(n,m)) [((x,y),a' x y)|x<-[0..n],y<-[0..m]] --s end with gap
-        b = array ((0,0),(n,m)) [((x,y),b' x y)|x<-[0..n],y<-[0..m]] --t end with gap
-        c = array ((0,0),(n,m)) [((x,y),c' x y)|x<-[0..n],y<-[0..m]] -- best 
-        n = length s'
-        m = length t'
-        s= array (0,n-1) $ zip [0..n-1] s'
-        t= array (0,m-1) $ zip [0..m-1] t'
-        a' i j
-          | i==0 || j==0  = inf
-          | otherwise     = max (a!(i-1,j)-e) (fst (c!(i-1,j))-g-e)
-        b' i j
-          | i==0 || j==0  = inf
-          | otherwise     = max (b!(i,j-1)-e) (fst (c!(i,j-1))-g-e)
-        c' i j
-          | min i j == 0  = (0,0)
-          | otherwise     = maximum [(b!(i,j),3),(a!(i,j),2),(match,1),(0,0)]
-          where 
-                match = fst (c!(i-1,j-1)) + f u v
-                u = s!(i-1)
-                v = t!(j-1)
-        inf = -1073741824
 
 
 longestPathDAG :: (Graph gr)=>gr a b ->[Node]
@@ -228,3 +172,33 @@ normalCharacterTable t = dfs t []
                subset x y = and $ zipWith (<=) x y
                disjoint x y = not $ or $ zipWith (\a b->a=='1' && b=='1') x y
 
+
+
+lcs :: (Eq a) => [a] -> [a] -> [a]
+lcs s' t' = reverse $ build n m
+  where
+    a :: Array (Int,Int) Int
+    a = runST $ do  
+          b <- newArray ((0,0),(n,m)) 0
+          mapM_ (f b) $ range ((0,0),(n,m))
+          unsafeFreeze b
+    n = length s'
+    m = length t'
+    s = listArray (0,n-1) s'
+    t = listArray (0,m-1) t'
+    f ::STArray s (Int,Int) Int -> (Int,Int) -> ST s ()
+    f b (i,j) 
+      | min i j == 0  = writeArray b (i,j) 0
+      | otherwise     = 
+          if s!(i-1) == t!(j-1) then do
+            x <- readArray b (i-1,j-1)
+            writeArray b (i,j) (x + 1)
+          else do
+            x <- readArray b (i-1,j)
+            y <- readArray b (i,j-1)
+            writeArray b (i,j) (max x y)
+    build i j 
+      | min i j == 0          = []
+      | s!(i-1) == t!(j-1)    = (s!(i-1)):build (i-1) (j-1)
+      | a!(i,j-1) > a!(i-1,j) = build i (j-1)
+      | otherwise             = build (i-1) j

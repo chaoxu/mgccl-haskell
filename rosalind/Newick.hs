@@ -11,6 +11,8 @@ newickTree :: String -> Tree Info
 newickTree s = right $ parse newickParser "" s
   where right (Right x) = x
 
+newickNameTree :: String -> Tree String
+newickNameTree s = fmap fst (newickTree s)
 tag :: t1->Tree (t, t1) -> Tree (t, t1)
 tag l (Node (n,_) ls)  = Node (n,l) ls 
 
@@ -72,5 +74,5 @@ printNewickTree :: Tree String -> String
 printNewickTree x = p x++";"
   where p (Node a []) = a
         p (Node a xs) = "("++join (map p xs)++")"++a
-        join [x] = x
-        join (x:xs) = x++","++join xs
+        join [y] = y
+        join (y:ys) = y++","++join ys

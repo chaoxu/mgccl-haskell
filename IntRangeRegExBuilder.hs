@@ -42,9 +42,9 @@ matchIntRange a b
  where build :: [Int]->[Int]->RegEx
        build [] [] = Concat [] 
        build (a@(x:xs)) (b@(y:ys))
-         | sl && x == y  = Concat [Range x x,build xs ys]
-         | sl && all9 ys = Concat [Range x y,All n]
-         | sl            = Or (Concat [Range x (y-1), All n]) (build (y:xs) b)
+         | sl && x == y  = Concat [Range x x, build xs ys]
+         | sl && all9 ys = Concat [Range x y, All n]
+         | sl            = Or (Concat [Range x (y-1), All n]) (build (y:r 0 n) b)
          | otherwise     = Or (build a (r 9 la)) (build (1:r 0 la) b)
          where (la,lb) = (length a, length b)
                sl      = la == lb
